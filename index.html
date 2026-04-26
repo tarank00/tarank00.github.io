@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Taran Kanabar</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #f9f8f6;
+      --surface: #ffffff;
+      --border: rgba(0,0,0,0.1);
+      --border-strong: rgba(0,0,0,0.18);
+      --text: #1a1a18;
+      --muted: #6b6b67;
+      --hint: #9e9e99;
+      --green-bg: #eaf3de;
+      --green-text: #3b6d11;
+      --radius: 10px;
+      --radius-sm: 6px;
+    }
+
+    @media (max-width: 520px) {
+      body { padding: 2.5rem 1.25rem 4rem; }
+ 
+      h1 { font-size: 30px; }
+ 
+      .hero-inner {
+        flex-direction: column-reverse;
+        align-items: flex-start;
+        gap: 1.25rem;
+      }
+ 
+      .headshot {
+        width: 80px;
+        height: 80px;
+      }
+ 
+      .contact-grid { grid-template-columns: 1fr; }
+    }
+
+
+    html { background: var(--bg); color: var(--text); }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 15px;
+      line-height: 1.7;
+      max-width: 640px;
+      margin: 0 auto;
+      padding: 4rem 1.5rem 5rem;
+    }
+
+    .mono { font-family: 'DM Mono', monospace; }
+
+    /* Hero */
+    .hero { margin-bottom: 3.5rem; padding-bottom: 2.5rem; border-bottom: 0.5px solid var(--border); }
+
+    .eyebrow {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--hint);
+      margin-bottom: 0.75rem;
+    }
+
+    h1 {
+      font-size: 40px;
+      font-weight: 300;
+      line-height: 1.1;
+      letter-spacing: -0.025em;
+      margin-bottom: 1.25rem;
+    }
+
+    h1 strong { font-weight: 500; }
+
+    .bio {
+      font-size: 15px;
+      color: var(--muted);
+      line-height: 1.75;
+      max-width: 480px;
+      margin-bottom: 1.5rem;
+    }
+
+    .pills { display: flex; flex-wrap: wrap; gap: 7px; }
+
+    .pill {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: 100px;
+      border: 0.5px solid var(--border-strong);
+      color: var(--muted);
+      letter-spacing: 0.03em;
+    }
+
+    /* Section */
+    .section-label {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--hint);
+      margin-bottom: 1rem;
+    }
+
+    /* Projects */
+    .projects {
+      border: 0.5px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      margin-bottom: 3rem;
+    }
+
+    .project {
+      background: var(--surface);
+      padding: 1.25rem 1.5rem;
+      border-bottom: 0.5px solid var(--border);
+      text-decoration: none;
+      color: inherit;
+      display: block;
+      transition: background 0.12s;
+    }
+
+    .project:last-child { border-bottom: none; }
+    .project:hover { background: var(--bg); }
+
+    .project-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-bottom: 0.45rem;
+    }
+
+    .project-title { font-size: 15px; font-weight: 500; line-height: 1.3; }
+
+    .badge {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      padding: 3px 9px;
+      border-radius: 100px;
+      white-space: nowrap;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .badge-active { background: var(--green-bg); color: var(--green-text); }
+
+    .badge-planned {
+      border: 0.5px solid var(--border);
+      color: var(--hint);
+    }
+
+    .project-desc {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.65;
+      margin-bottom: 0.85rem;
+    }
+
+    .tags { display: flex; flex-wrap: wrap; gap: 5px; }
+
+    .tag {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      color: var(--hint);
+      padding: 2px 7px;
+      border: 0.5px solid var(--border);
+      border-radius: 4px;
+      letter-spacing: 0.02em;
+    }
+
+    /* Contact */
+    .contact-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .contact-card {
+      background: var(--surface);
+      border: 0.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 0.9rem 1.1rem;
+      text-decoration: none;
+      color: inherit;
+      display: block;
+      transition: background 0.12s;
+    }
+
+    .contact-card:hover { background: var(--bg); }
+
+    .contact-label {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--hint);
+      margin-bottom: 0.3rem;
+    }
+
+    .contact-value { font-size: 13px; color: var(--text); }
+
+    @media (max-width: 480px) {
+      h1 { font-size: 32px; }
+      .contact-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <header class="hero">
+    <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 2rem;">
+      <div>
+        <p class="eyebrow">Portfolio</p>
+        <h1>Taran Kanabar</h1>
+        <p class="bio">
+          Math &amp; statistics graduate (Acadia University) with SOA Exams P and FM.
+          Currently a health &amp; benefits consulting intern at WTW, and developing skills alongside 
+          in applied ML and data infastructure.
+        </p>
+        <div class="pills">
+          <span class="pill">Python</span>
+          <span class="pill">R</span>
+          <span class="pill">SQL</span>
+          <span class="pill">Probability theory</span>
+          <span class="pill">Canada 🇨🇦</span>
+        </div>
+      </div>
+    
+    <img src="headshot.jpg" alt="Taran Kanabar" style="
+      width: 160px;
+      height: 160px;
+      border-radius: 50%;
+      object-fit: cover;
+      flex-shrink: 0;
+      border: 0.5px solid var(--border);
+    "/>
+  </div>
+  </header>
+
+  <main>
+    <p class="section-label">Projects</p>
+
+    <div class="projects">
+
+      <a class="project" href="https://github.com/tarank00" target="_blank">
+        <div class="project-top">
+          <p class="project-title">Canadian Multifamily Real Estate Scanner</p>
+          <span class="badge badge-active">In progress</span>
+        </div>
+        <p class="project-desc">
+          Automated pipeline scraping MLS and rental listings across Canadian markets.
+          Computes investment metrics (cap rate, DSCR, price per door) using a hedonic
+          regression model for market rent estimation. Deployed on a personal server
+          with scheduled ingestion jobs and an interactive dashboard.
+        </p>
+        <div class="tags">
+          <span class="tag">Python</span>
+          <span class="tag">regression</span>
+          <span class="tag">ETL pipeline</span>
+          <span class="tag">web scraping</span>
+          <span class="tag">Linux server</span>
+        </div>
+      </a>
+    </div>
+
+    <p class="section-label">Contact</p>
+    <div class="contact-grid">
+      <a class="contact-card" href="https://github.com/tarank00" target="_blank">
+        <p class="contact-label">GitHub</p>
+        <p class="contact-value mono">github.com/tarank00</p>
+      </a>
+      <a class="contact-card" href="mailto:kanabartaran@gmail.com">
+        <p class="contact-label">Email</p>
+        <p class="contact-value">kanabartaran@gmail.com</p>
+      </a>
+      <a class="contact-card" href="https://linkedin.com/in/taran-kanabar" target="_blank">
+        <p class="contact-label">LinkedIn</p>
+        <p class="contact-value mono">linkedin.com/in/taran-kanabar</p>
+      </a>
+      <div class="contact-card">
+        <p class="contact-label">Location</p>
+        <p class="contact-value">Calgary, AB</p>
+      </div>
+    </div>
+  </main>
+
+</body>
+</html>
