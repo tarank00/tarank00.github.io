@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Alberta Power Price Weather Calculator</title>
+<meta name="description" content="See how tomorrow's weather changes Alberta's power price. A seasonal t-copula model of AESO pool price and Calgary/Edmonton temperature.">
+<style>
+  :root{
+    --desk:#008080; --face:#c0c0c0; --hi:#ffffff; --lt:#dfdfdf; --sh:#808080; --dk:#000000;
+    --navy:#000080; --blue2:#1084d0; --lcd:#0b1d0b; --lcdtxt:#39ff6a; --warn:#800000;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{background:var(--face);font-family:Tahoma,"MS Sans Serif",Geneva,Verdana,sans-serif;font-size:13px;color:#000;padding:28px 12px 40px}
+  .win{max-width:780px;margin:0 auto}
+  h1{font-size:26px;color:var(--navy);margin:0 0 4px;letter-spacing:-.3px}
+  .sub{font-size:12px;color:#333;margin:0}
+  hr.groove{border:0;border-top:1px solid var(--sh);border-bottom:1px solid var(--hi);margin:10px 0 12px}
+  .title{background:linear-gradient(90deg,var(--navy),var(--blue2));color:#fff;font-weight:bold;padding:3px 4px 3px 6px;display:flex;align-items:center;justify-content:space-between;font-size:13px}
+  .title .tb{display:flex;gap:2px}
+  .title .tb span{width:18px;height:16px;background:var(--face);color:#000;font-size:11px;line-height:13px;text-align:center;
+    border:1px solid;border-color:var(--hi) var(--dk) var(--dk) var(--hi);box-shadow:inset -1px -1px var(--sh);font-family:inherit}
+  .menu{display:flex;gap:14px;padding:4px 6px;font-size:13px}
+  .menu u{text-decoration:underline}
+  .body{padding:0}
+  .intro{margin:0 0 12px;line-height:1.45}
+  .cols{display:grid;grid-template-columns:270px 1fr;gap:12px}
+  @media(max-width:680px){.cols{grid-template-columns:1fr}}
+  fieldset{border:1px solid var(--sh);box-shadow:1px 1px var(--hi),inset 1px 1px var(--hi);padding:10px 10px 12px;margin:0 0 12px}
+  legend{float:left;width:100%;padding:0;margin:0 0 10px;font-weight:bold}
+  legend + *{clear:both}
+  .radios{display:grid;grid-template-columns:1fr 1fr;gap:4px 10px}
+  .radios label{display:flex;align-items:center;gap:6px;cursor:pointer}
+  input[type=radio]{accent-color:#000;margin:0}
+  .field{margin-top:10px}
+  .field:first-child{margin-top:0}
+  .field label{display:block;margin-bottom:4px}
+  .sunk{background:#fff;border:2px solid;border-color:var(--sh) var(--hi) var(--hi) var(--sh);box-shadow:inset 1px 1px var(--dk);padding:3px 5px;font:inherit;width:100%}
+  .temprow{display:flex;align-items:center;gap:6px}
+  .temprow .sunk{width:72px;text-align:right}
+  .btn{background:var(--face);border:2px solid;border-color:var(--hi) var(--dk) var(--dk) var(--hi);box-shadow:inset -1px -1px var(--sh),inset 1px 1px var(--lt);
+    font:inherit;padding:3px 8px;cursor:pointer;min-width:28px}
+  .btn:active,.btn.on{border-color:var(--dk) var(--hi) var(--hi) var(--dk);box-shadow:inset 1px 1px var(--sh)}
+  .presets{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+  .presets .btn{font-size:12px;padding:2px 6px}
+  input[type=range]{width:100%;margin:8px 0 0;-webkit-appearance:none;appearance:none;background:transparent;height:22px}
+  input[type=range]::-webkit-slider-runnable-track{height:4px;background:#fff;border:1px solid;border-color:var(--sh) var(--hi) var(--hi) var(--sh)}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;height:21px;margin-top:-9px;background:var(--face);border:2px solid;border-color:var(--hi) var(--dk) var(--dk) var(--hi)}
+  input[type=range]::-moz-range-track{height:4px;background:#fff;border:1px solid var(--sh)}
+  input[type=range]::-moz-range-thumb{width:9px;height:19px;border-radius:0;background:var(--face);border:2px solid;border-color:var(--hi) var(--dk) var(--dk) var(--hi)}
+  .ticks{display:flex;justify-content:space-between;font-size:11px;color:#333}
+  .hint{font-size:11px;color:#333;margin-top:4px;line-height:1.35}
+  /* LCD readouts */
+  .lcds{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .lcd{background:var(--lcd);border:2px solid;border-color:var(--sh) var(--hi) var(--hi) var(--sh);box-shadow:inset 1px 1px var(--dk);padding:7px 9px;color:var(--lcdtxt);font-family:"Courier New",Courier,monospace}
+  .lcd .k{font-size:11px;color:#9fe8b0;font-family:Tahoma,Verdana,sans-serif}
+  .lcd .v{font-size:24px;font-weight:bold;letter-spacing:.5px;margin:2px 0;text-shadow:0 0 6px rgba(57,255,106,.45);white-space:nowrap}
+  .lcd .d{font-size:12px;color:#d4f7dc}
+  .note{margin-top:10px;background:#ffffe1;border:1px solid #000;padding:8px 10px;line-height:1.45}
+  .note b{color:var(--navy)}
+  .warn{color:var(--warn);font-weight:bold}
+  .chartbox{background:#fff;border:2px solid;border-color:var(--sh) var(--hi) var(--hi) var(--sh);box-shadow:inset 1px 1px var(--dk);padding:6px;margin-top:10px}
+  .legend{display:flex;gap:14px;font-size:11px;margin:0 0 4px 4px;flex-wrap:wrap}
+  .sw{display:inline-block;width:11px;height:11px;border:1px solid #000;vertical-align:-1px;margin-right:4px}
+  svg text{font-family:Tahoma,Verdana,sans-serif}
+  .readme{font-family:"Courier New",Courier,monospace;font-size:12.5px;line-height:1.5;background:#fff;border:2px solid;border-color:var(--sh) var(--hi) var(--hi) var(--sh);box-shadow:inset 1px 1px var(--dk);padding:10px 12px;margin:0;white-space:pre-wrap}
+  details{margin-top:4px}
+  summary{cursor:pointer;padding:4px 0;font-weight:bold}
+  .status{display:flex;gap:3px;margin-top:6px}
+  .status div{flex:1;border:1px solid;border-color:var(--sh) var(--hi) var(--hi) var(--sh);padding:2px 6px;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .status div:first-child{flex:2}
+  @media(max-width:480px){.lcd .v{font-size:19px}.status div:not(:first-child){display:none}}
+  .links{max-width:780px;margin:4px auto 0;color:#000;font-size:12px;display:flex;gap:16px;flex-wrap:wrap;justify-content:center}
+  .links a{color:var(--navy)}
+  .readme a{color:#000080}
+</style>
+</head>
+<body>
+<div class="win">
+  <div class="body">
+    <h1>Alberta Power Price Weather Calculator</h1>
+    <p class="sub">A seasonal t-copula model of AESO pool price and Calgary/Edmonton temperature</p>
+    <hr class="groove">
+    <p class="intro">How much does the weather move Alberta's power price? Pick a season and tomorrow's temperature, and this simulates 20,000 possible tomorrows. Every result is compared with a day of <b>normal</b> weather.</p>
+
+    <div class="cols">
+      <div>
+        <fieldset>
+          <legend>1. Season</legend>
+          <div class="radios" id="season">
+            <label><input type="radio" name="s" value="winter" checked> Winter</label>
+            <label><input type="radio" name="s" value="spring"> Spring</label>
+            <label><input type="radio" name="s" value="summer"> Summer</label>
+            <label><input type="radio" name="s" value="fall"> Fall</label>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>2. Tomorrow's weather</legend>
+          <div class="field">
+            <label for="tnum">Temperature compared with normal</label>
+            <div class="temprow"><input class="sunk" type="number" id="tnum" min="-20" max="20" step="1" value="-12"><span>°C</span> </div>
+            <input type="range" id="temp" min="-20" max="20" step="1" value="-12" aria-label="Temperature compared with normal">
+            <div class="ticks"><span>-20 colder</span><span>0</span><span>+20 warmer</span></div>
+            <div class="presets">
+              <button class="btn" data-t="-15">Cold snap</button>
+              <button class="btn" data-t="0">Normal</button>
+              <button class="btn" data-t="12">Heat wave</button>
+            </div>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>3. Prices today</legend>
+          <div class="field">
+            <label for="p0">Power price today ($/MWh)</label>
+            <input class="sunk" type="number" id="p0" value="60" min="1" max="999" step="1">
+          </div>
+          <div class="field">
+            <label for="aeco">Gas price, AECO ($/GJ)</label>
+            <input class="sunk" type="number" id="aeco" value="2.50" min="0" max="30" step="0.05">
+            <div class="hint">Used for the gas plant profit. Assumes an efficient plant that burns 7.5 GJ of gas per MWh.</div>
+          </div>
+        </fieldset>
+      </div>
+
+      <div>
+        <div class="lcds">
+          <div class="lcd"><div class="k">Typical price tomorrow</div><div class="v" id="v1">--</div><div class="d" id="d1"></div></div>
+          <div class="lcd"><div class="k">Likely range (8 in 10 days)</div><div class="v" id="v2">--</div><div class="d" id="d2"></div></div>
+          <div class="lcd"><div class="k">Chance of a spike over $200</div><div class="v" id="v3">--</div><div class="d" id="d3"></div></div>
+          <div class="lcd"><div class="k">Gas plant profit, average</div><div class="v" id="v4">--</div><div class="d" id="d4"></div></div>
+        </div>
+
+        <div class="chartbox">
+          <div class="legend"><span><span class="sw" style="background:#000080"></span>This weather</span><span><span class="sw" style="background:#fff;border-style:dashed"></span>Normal weather</span><span><span class="sw" style="background:#800000"></span>$200 spike line</span></div>
+          <svg id="chart" viewBox="0 0 440 200" width="100%" role="img" aria-label="Chart of possible prices tomorrow"></svg>
+        </div>
+
+        <div class="note" id="note"></div>
+      </div>
+    </div>
+
+    <details>
+      <summary>README.TXT &mdash; how it works</summary>
+<pre class="readme">THE DATA
+  Daily AESO pool price and Calgary/Edmonton temperatures.
+
+  Sources:
+   - Power prices: <a href="https://developer-apim.aeso.ca/">AESO API</a> (Pool Price Report)
+   - Weather: <a href="https://open-meteo.com/">Open-Meteo</a> historical weather API
+     (Zippenfenig, P. 2023, doi:10.5281/zenodo.7970649),
+     licensed under <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>
+
+  The model uses two things:
+   - the day-to-day % change in power price
+   - how far each day's temperature was from normal
+     for that date
+
+THE MODEL
+  A separate t-copula for each season. A copula measures
+  how two things move together without assuming a shape
+  for either one. The t version allows both to hit
+  extremes at the same time.
+
+  You pick a temperature. The calculator finds where it
+  ranks against past days, draws 20,000 matching price
+  changes from the copula, and applies them to today's
+  price.
+
+WHAT I FOUND
+  - Cold raises prices in winter; heat raises them in
+    summer. Fall shows almost no link.
+  - Weather moves the typical price much more than it
+    causes extreme spikes. Big spikes mostly come from
+    the supply side: low wind, plant outages, imports.
+  - U.S. gas prices (Henry Hub) did not explain Alberta
+    power prices. Alberta gas (AECO) often trades on its
+    own because of pipeline limits.
+
+LIMITS
+  - Daily averages hide short spikes within the day.
+  - Temperatures beyond the historical range are
+    estimates, not data.
+  - The gas price you enter only affects the profit
+    figure. It does not change the simulated power
+    prices, even though in reality higher gas prices
+    tend to push Alberta power prices up.
+  - Prices are capped at Alberta's $999.99/MWh limit.
+
+NEXT
+  Model the daily high price instead of the average,
+  and add AECO gas prices as a third variable.</pre>
+    </details>
+
+  </div>
+</div>
+<hr class="groove" style="max-width:780px;margin:14px auto 8px">
+<div class="links">
+  <span>Made by Taran Kanabar</span><a href="https://www.linkedin.com/in/taran-kanabar">LinkedIn</a>
+  <span>Data: <a href="https://developer-apim.aeso.ca/">AESO API</a> &middot; <a href="https://open-meteo.com/">Weather data by Open-Meteo.com</a></span>
+</div>
+
+<script>
+/* ======================= MODEL DATA ======================= */
+// Empirical quantiles at p = 1%..99% (log return of daily pool price; temperature residual °C)
+const Q = {"winter":{"ret":[-1.7,-1.4,-1.2,-1.1,-1.0,-0.9,-0.8,-0.7,-0.7,-0.6,-0.6,-0.5,-0.5,-0.5,-0.4,-0.4,-0.4,-0.4,-0.3,-0.3,-0.3,-0.3,-0.3,-0.3,-0.2,-0.2,-0.2,-0.2,-0.2,-0.2,-0.1,-0.1,-0.1,-0.1,-0.1,-0.1,-0.1,-0.1,-0.1,-0.1,-0.1,-0.1,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.2,0.2,0.2,0.2,0.2,0.2,0.3,0.3,0.3,0.3,0.3,0.3,0.4,0.4,0.4,0.4,0.4,0.5,0.5,0.5,0.6,0.6,0.7,0.7,0.7,0.8,0.9,1.0,1.1,1.3,1.7],"temp":[-15.7,-13.3,-11.6,-9.8,-9.0,-8.1,-7.5,-7.0,-6.6,-6.3,-6.0,-5.7,-5.3,-5.1,-4.8,-4.5,-4.3,-4.2,-4.0,-3.8,-3.6,-3.5,-3.2,-3.0,-2.9,-2.7,-2.6,-2.5,-2.4,-2.3,-2.1,-2.0,-1.9,-1.8,-1.6,-1.5,-1.4,-1.3,-1.2,-1.1,-1.0,-0.9,-0.8,-0.6,-0.5,-0.4,-0.3,-0.2,-0.1,0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,1.0,1.1,1.2,1.3,1.4,1.6,1.7,1.8,1.9,2.1,2.2,2.3,2.5,2.5,2.7,2.8,3.0,3.2,3.3,3.5,3.7,3.9,4.1,4.2,4.4,4.6,4.7,5.0,5.3,5.5,5.9,6.2,6.7,7.1,7.9,8.6,9.2,9.8,11.1,12.9,15.5]},"spring":{"ret":[-2.1,-1.7,-1.5,-1.3,-1.1,-1.0,-0.9,-0.9,-0.8,-0.7,-0.7,-0.6,-0.6,-0.6,-0.5,-0.5,-0.5,-0.5,-0.4,-0.4,-0.4,-0.3,-0.3,-0.3,-0.3,-0.2,-0.2,-0.2,-0.2,-0.2,-0.2,-0.1,-0.1,-0.1,-0.1,-0.1,-0.1,-0.1,-0.1,-0.1,-0.1,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.2,0.2,0.2,0.2,0.2,0.2,0.2,0.2,0.3,0.3,0.3,0.3,0.3,0.4,0.4,0.4,0.4,0.5,0.5,0.5,0.5,0.6,0.6,0.7,0.7,0.8,0.9,1.0,1.1,1.2,1.4,1.6,1.7,2.0],"temp":[-12.6,-11.5,-10.4,-9.3,-8.6,-8.3,-8.1,-7.8,-7.3,-6.8,-6.6,-6.2,-5.9,-5.6,-5.2,-4.9,-4.5,-4.1,-3.9,-3.7,-3.3,-3.0,-2.8,-2.7,-2.5,-2.4,-2.2,-2.1,-2.0,-1.9,-1.8,-1.7,-1.5,-1.3,-1.2,-1.1,-1.0,-0.7,-0.6,-0.6,-0.5,-0.4,-0.3,-0.2,0.0,0.1,0.1,0.2,0.3,0.4,0.5,0.7,0.8,1.0,1.1,1.2,1.2,1.3,1.5,1.6,1.7,1.8,1.9,2.0,2.1,2.2,2.4,2.4,2.5,2.6,2.7,2.8,2.9,3.0,3.1,3.3,3.4,3.5,3.6,3.9,3.9,4.2,4.3,4.4,4.6,4.7,4.9,5.1,5.3,5.6,5.9,6.4,6.6,6.9,7.2,7.7,8.4,9.3,10.7]},"summer":{"ret":[-2.0,-1.7,-1.6,-1.4,-1.3,-1.2,-1.1,-1.0,-0.9,-0.8,-0.8,-0.7,-0.6,-0.6,-0.5,-0.5,-0.5,-0.4,-0.4,-0.4,-0.4,-0.3,-0.3,-0.3,-0.3,-0.3,-0.2,-0.2,-0.2,-0.2,-0.2,-0.2,-0.2,-0.2,-0.1,-0.1,-0.1,-0.1,-0.1,-0.1,-0.1,-0.1,-0.1,-0.1,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.2,0.2,0.2,0.2,0.2,0.2,0.2,0.2,0.3,0.3,0.3,0.3,0.3,0.4,0.4,0.4,0.5,0.5,0.5,0.6,0.6,0.7,0.7,0.7,0.8,0.8,0.9,1.0,1.1,1.2,1.3,1.5,1.8,2.2],"temp":[-11.1,-9.3,-8.7,-8.1,-7.5,-6.9,-6.4,-6.0,-5.6,-5.1,-4.9,-4.6,-4.4,-4.1,-3.9,-3.8,-3.5,-3.4,-3.2,-3.0,-2.9,-2.7,-2.6,-2.5,-2.5,-2.3,-2.2,-2.0,-1.9,-1.8,-1.6,-1.4,-1.3,-1.2,-1.1,-1.0,-0.9,-0.8,-0.7,-0.6,-0.5,-0.4,-0.3,-0.2,-0.1,0.0,0.1,0.2,0.3,0.4,0.6,0.7,0.8,0.9,1.0,1.1,1.2,1.3,1.4,1.5,1.5,1.6,1.7,1.8,1.8,1.9,2.0,2.1,2.2,2.2,2.3,2.4,2.5,2.6,2.7,2.8,2.9,3.0,3.1,3.2,3.2,3.3,3.5,3.6,3.8,3.9,4.0,4.3,4.4,4.6,4.7,4.8,5.1,5.4,5.6,6.2,6.7,7.7,9.1]},"fall":{"ret":[-2.4,-2.1,-1.8,-1.5,-1.3,-1.2,-1.1,-1.0,-0.8,-0.8,-0.7,-0.6,-0.6,-0.6,-0.5,-0.5,-0.5,-0.4,-0.4,-0.4,-0.3,-0.3,-0.3,-0.3,-0.3,-0.2,-0.2,-0.2,-0.2,-0.2,-0.2,-0.2,-0.1,-0.1,-0.1,-0.1,-0.1,-0.1,-0.1,-0.1,-0.1,-0.1,-0.1,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.2,0.2,0.2,0.2,0.2,0.2,0.2,0.2,0.3,0.3,0.3,0.3,0.4,0.4,0.4,0.4,0.5,0.5,0.5,0.6,0.6,0.7,0.7,0.8,0.8,0.9,1.0,1.1,1.2,1.3,1.4,1.6,1.7,2.1],"temp":[-11.2,-9.8,-8.8,-8.3,-7.7,-7.2,-6.5,-6.1,-5.8,-5.6,-5.3,-5.0,-4.5,-4.4,-4.1,-4.0,-3.9,-3.6,-3.5,-3.3,-3.1,-3.0,-2.7,-2.6,-2.5,-2.2,-2.1,-1.9,-1.8,-1.7,-1.6,-1.5,-1.4,-1.3,-1.2,-1.1,-1.0,-0.8,-0.7,-0.6,-0.5,-0.4,-0.3,-0.2,-0.1,-0.1,0.0,0.2,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.8,1.0,1.1,1.2,1.3,1.4,1.5,1.6,1.6,1.8,1.9,2.0,2.1,2.1,2.2,2.3,2.4,2.5,2.6,2.8,2.9,3.1,3.2,3.3,3.4,3.5,3.6,3.6,3.8,3.9,4.1,4.3,4.5,4.7,4.8,5.0,5.4,5.6,5.8,6.1,6.4,6.8,7.9,9.2]}};
+
+// Copula parameters. Sign convention: corr(temperature anomaly, price log return).
+// Negative = colder-than-normal days raise price (heating load); positive = hotter days raise price (cooling load).
+const PARAMS = {
+  winter:{rho:-0.365, nu:17.473},
+  spring:{rho:-0.147, nu:13.562},
+  summer:{rho: 0.252, nu:13.941},
+  fall:  {rho:-0.033, nu: 7.000}
+};
+const CAP = 999.99, N = 20000;
+
+/* ======================= MATH ======================= */
+function lgamma(x){
+  const g=7, c=[0.99999999999980993,676.5203681218851,-1259.1392167224028,771.32342877765313,
+    -176.61502916214059,12.507343278686905,-0.13857109526572012,9.9843695780195716e-6,1.5056327351493116e-7];
+  if(x<0.5) return Math.log(Math.PI/Math.sin(Math.PI*x))-lgamma(1-x);
+  x-=1; let a=c[0]; const t=x+g+0.5;
+  for(let i=1;i<9;i++) a+=c[i]/(x+i);
+  return 0.5*Math.log(2*Math.PI)+(x+0.5)*Math.log(t)-t+Math.log(a);
+}
+function betacf(a,b,x){
+  const MAXIT=200, EPS=3e-14, FPMIN=1e-300;
+  let qab=a+b, qap=a+1, qam=a-1, c=1, d=1-qab*x/qap;
+  if(Math.abs(d)<FPMIN) d=FPMIN; d=1/d; let h=d;
+  for(let m=1;m<=MAXIT;m++){
+    const m2=2*m; let aa=m*(b-m)*x/((qam+m2)*(a+m2));
+    d=1+aa*d; if(Math.abs(d)<FPMIN) d=FPMIN; c=1+aa/c; if(Math.abs(c)<FPMIN) c=FPMIN; d=1/d; h*=d*c;
+    aa=-(a+m)*(qab+m)*x/((a+m2)*(qap+m2));
+    d=1+aa*d; if(Math.abs(d)<FPMIN) d=FPMIN; c=1+aa/c; if(Math.abs(c)<FPMIN) c=FPMIN; d=1/d;
+    const del=d*c; h*=del; if(Math.abs(del-1)<EPS) break;
+  }
+  return h;
+}
+function ibeta(a,b,x){ // regularized incomplete beta
+  if(x<=0) return 0; if(x>=1) return 1;
+  const bt=Math.exp(lgamma(a+b)-lgamma(a)-lgamma(b)+a*Math.log(x)+b*Math.log(1-x));
+  return (x<(a+1)/(a+b+2)) ? bt*betacf(a,b,x)/a : 1-bt*betacf(b,a,1-x)/b;
+}
+function tcdf(x,nu){
+  const p=0.5*ibeta(nu/2,0.5,nu/(nu+x*x));
+  return x>0 ? 1-p : p;
+}
+function tinv(p,nu){ // bisection, plenty accurate for this use
+  let lo=-60, hi=60;
+  for(let i=0;i<80;i++){ const mid=(lo+hi)/2; if(tcdf(mid,nu)<p) lo=mid; else hi=mid; }
+  return (lo+hi)/2;
+}
+// Seeded RNG so results are stable as inputs change (no jitter)
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;}}
+function makeNormal(rand){ let spare=null; return function(){
+  if(spare!==null){const s=spare;spare=null;return s;}
+  let u,v,s; do{u=rand()*2-1;v=rand()*2-1;s=u*u+v*v;}while(s>=1||s===0);
+  const m=Math.sqrt(-2*Math.log(s)/s); spare=v*m; return u*m; }; }
+function gammaSample(k,rand,normal){ // Marsaglia–Tsang, shape k, scale 1
+  if(k<1){ return gammaSample(k+1,rand,normal)*Math.pow(rand(),1/k); }
+  const d=k-1/3, c=1/Math.sqrt(9*d);
+  for(;;){ let x,v; do{x=normal();v=1+c*x;}while(v<=0); v=v*v*v; const u=rand();
+    if(u<1-0.0331*x*x*x*x) return d*v;
+    if(Math.log(u)<0.5*x*x+d*(1-v+Math.log(v))) return d*v; }
+}
+
+/* ============== Empirical quantile functions ============== */
+const P = Array.from({length:99},(_,i)=>(i+1)/100);
+function qInterp(arr,u){ // quantile function: u -> value, linear interp with linear tail extrapolation
+  if(u<=0.01){ const s=(arr[1]-arr[0])/0.01; return arr[0]-s*(0.01-u); }
+  if(u>=0.99){ const s=(arr[98]-arr[97])/0.01; return arr[98]+s*(u-0.99); }
+  const pos=(u-0.01)*100, i=Math.floor(pos), f=pos-i;
+  return arr[i]+(arr[i+1]-arr[i])*f;
+}
+function cdfInterp(arr,x){ // value -> u, handles ties by taking the midpoint of the tied block
+  if(x<=arr[0]){ const s=(arr[1]-arr[0])/0.01||1; return Math.max(0.001,0.01-(arr[0]-x)/s); }
+  if(x>=arr[98]){ const s=(arr[98]-arr[97])/0.01||1; return Math.min(0.999,0.99+(x-arr[98])/s); }
+  let lo=-1, hi=-1;
+  for(let i=0;i<99;i++){ if(arr[i]===x){ if(lo<0) lo=i; hi=i; } }
+  if(lo>=0) return (P[lo]+P[hi])/2;
+  for(let i=0;i<98;i++){ if(arr[i]<x && x<arr[i+1]) return P[i]+0.01*(x-arr[i])/(arr[i+1]-arr[i]); }
+  return 0.5;
+}
+
+/* ======================= SIMULATION ======================= */
+function simulate(season,tempAnom,p0){
+  const {rho,nu}=PARAMS[season], q=Q[season];
+  const u1=cdfInterp(q.temp,tempAnom), z1=tinv(u1,nu);
+  const scale=Math.sqrt((nu+z1*z1)*(1-rho*rho)/(nu+1));
+  const rand=mulberry32(42), normal=makeNormal(rand), nu1=nu+1;
+  const scen=new Float64Array(N), base=new Float64Array(N);
+  for(let i=0;i<N;i++){
+    // conditional draw
+    const t=normal()/Math.sqrt(2*gammaSample(nu1/2,rand,normal)/nu1);
+    const z2=rho*z1+scale*t;
+    const u2=Math.min(Math.max(tcdf(z2,nu),1e-6),1-1e-6);
+    scen[i]=clip(p0*Math.exp(qInterp(q.ret,u2)));
+    // baseline: marginal only (no weather info)
+    base[i]=clip(p0*Math.exp(qInterp(q.ret,rand())));
+  }
+  scen.sort(); base.sort();
+  return {scen,base,u1};
+}
+const clip=x=>Math.min(CAP,Math.max(0,x));
+const pct=(a,p)=>a[Math.min(a.length-1,Math.floor(p*a.length))];
+const mean=a=>{let s=0;for(const v of a)s+=v;return s/a.length;};
+const probAbove=(a,x)=>{let c=0;for(const v of a)if(v>x)c++;return c/a.length;};
+
+/* ======================= UI ======================= */
+const HEAT_RATE=7.5, SPIKE=200;
+const $=id=>document.getElementById(id);
+let season='winter';
+const money=v=>(v<0?'-$':'$')+Math.abs(Math.round(v));
+const pctf=v=>(v*100).toFixed(v<0.1?1:0)+'%';
+function diff(v,kind){
+  if(kind==='pp'){const x=v*100; if(Math.abs(x)<0.05) return 'same as normal weather'; return (x>0?'+':'-')+Math.abs(x).toFixed(1)+' pts vs normal';}
+  if(Math.abs(v)<0.5) return 'same as normal weather'; return (v>0?'+':'-')+'$'+Math.abs(Math.round(v))+' vs normal';
+}
+function describeTemp(T){
+  if(T===0) return 'normal';
+  return Math.abs(T)+'° '+(T<0?'colder':'warmer')+' than normal';
+}
+function run(){
+  let T=Math.round(+$('temp').value);
+  const p0=Math.max(1,+$('p0').value||60), aeco=Math.max(0,+$('aeco').value||0);
+  const a=simulate(season,T,p0).scen, b=simulate(season,0,p0).scen;
+  const fuel=HEAT_RATE*aeco;
+  const m1=pct(a,.5), m0=pct(b,.5);
+  $('v1').textContent=money(m1); $('d1').textContent=diff(m1-m0);
+  $('v2').textContent=money(pct(a,.1))+'–'+money(pct(a,.9));
+  $('d2').textContent='normal: '+money(pct(b,.1))+'–'+money(pct(b,.9));
+  const s1=probAbove(a,SPIKE), s0=probAbove(b,SPIKE);
+  $('v3').textContent=pctf(s1); $('d3').textContent=diff(s1-s0,'pp');
+  const g1=mean(a)-fuel, g0=mean(b)-fuel;
+  $('v4').textContent=money(g1)+'/MWh'; $('d4').textContent=diff(g1-g0);
+
+  // plain-English note
+  const name=season;
+  const qt=Q[season].temp, outside=(T<qt[0]||T>qt[98]);
+  let n;
+  if(T===0){ n=`<b>Normal ${name} day.</b> This is the baseline. Move the temperature to see how weather changes the picture.`; }
+  else{
+    const dir=m1>m0+0.5?'higher':m1<m0-0.5?'lower':'about the same';
+    n=`<b>${cap(describeTemp(T))} in ${name}:</b> the typical price tomorrow is ${dir==='about the same'?'about the same as':money(Math.abs(m1-m0))+' '+dir+' than'} on a normal day, and the chance of a spike over $200 goes from ${pctf(s0)} to ${pctf(s1)}.`;
+    if(Math.abs(PARAMS[season].rho)<0.08) n+=` In ${name}, temperature and price are barely linked, so the weather tells you little about which way price will move.`;
+  }
+  if(outside) n+=`<br><span class="warn">Note:</span> ${T}° is outside anything seen in past ${name} data (${qt[0]}° to +${qt[98]}°), so this result is an estimate beyond the data.`;
+  $('note').innerHTML=n;
+  draw(a,b);
+}
+const cap=s=>s[0].toUpperCase()+s.slice(1);
+
+function draw(a,b){
+  const svg=$('chart'),W=440,H=200,m={l:8,r:8,t:8,b:30};
+  const xmax=Math.min(CAP,Math.max(pct(a,.97),pct(b,.97),SPIKE*1.15));
+  const bins=30,bw=xmax/bins;
+  const hist=arr=>{const h=new Array(bins).fill(0);for(const v of arr){if(v<=xmax)h[Math.min(bins-1,Math.floor(v/bw))]++;}return h.map(c=>c/arr.length);};
+  const ha=hist(a),hb=hist(b),ymax=Math.max(...ha,...hb)*1.08;
+  const X=v=>m.l+v/xmax*(W-m.l-m.r),Y=v=>H-m.b-v/ymax*(H-m.t-m.b),bp=(W-m.l-m.r)/bins;
+  let s='';
+  ha.forEach((v,i)=>{s+=`<rect x="${X(i*bw)+1}" y="${Y(v)}" width="${bp-2}" height="${Y(0)-Y(v)}" fill="#000080"/>`;});
+  hb.forEach((v,i)=>{s+=`<rect x="${X(i*bw)+1}" y="${Y(v)}" width="${bp-2}" height="${Y(0)-Y(v)}" fill="none" stroke="#000" stroke-dasharray="2 2"/>`;});
+  if(SPIKE<=xmax){s+=`<line x1="${X(SPIKE)}" x2="${X(SPIKE)}" y1="${m.t}" y2="${H-m.b}" stroke="#800000" stroke-width="2"/>`;}
+  s+=`<line x1="${m.l}" x2="${W-m.r}" y1="${Y(0)}" y2="${Y(0)}" stroke="#000"/>`;
+  const step=xmax>600?200:xmax>300?100:50;
+  for(let v=0;v<=xmax;v+=step) s+=`<text x="${X(v)}" y="${H-m.b+13}" font-size="10" text-anchor="middle">$${v}</text>`;
+  s+=`<text x="${W/2}" y="${H-3}" font-size="10" text-anchor="middle">Possible power prices tomorrow ($/MWh)</text>`;
+  svg.innerHTML=s;
+}
+
+// wiring
+document.querySelectorAll('#season input').forEach(r=>r.addEventListener('change',()=>{season=r.value;
+  const t={winter:-12,spring:-6,summer:8,fall:-6}[season]; setT(t);}));
+function setT(t){t=Math.max(-20,Math.min(20,Math.round(t)));$('temp').value=t;$('tnum').value=t;run();}
+$('temp').addEventListener('input',e=>setT(+e.target.value));
+$('tnum').addEventListener('change',e=>setT(+e.target.value||0));
+document.querySelectorAll('.presets .btn').forEach(b=>b.addEventListener('click',()=>setT(+b.dataset.t)));
+['p0','aeco'].forEach(id=>$(id).addEventListener('input',run));
+run();
+</script>
+</body>
+</html>
